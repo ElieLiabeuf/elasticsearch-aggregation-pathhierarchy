@@ -23,7 +23,7 @@ Usage
 
 ### Parameters
 
- - `field` or `script` : field to aggregate on
+ - `field` or ~~`script`~~ : field to aggregate on
  - `separator` : separator for path hierarchy (default to "/")
  - `order` : order parameter to define how to sort result. Allowed parameters are `_term`, `_count` or sub aggregation name. Default to {"_count": "desc}.
  - `max_depth`: Set maximum depth level. `-1` means no limit. Default to 3.
@@ -97,56 +97,47 @@ GET /filesystem/file/_search?search_type=count
 
 Result :
 
-{"aggregations": {
-      "tree": {
-         "buckets": [
-            {
-               "key": "My documents",
-               "doc_count": 3,
-               "total_views": {
-                  "value": 18
-               },
-               "tree": {
-                  "buckets": [
-                     {
-                        "key": "Test.txt",
-                        "doc_count": 1,
-                        "total_views": {
-                           "value": 1
-                        }
-                     },
-                     {
-                        "key": "Spreadsheets",
-                        "doc_count": 2,
-                        "total_views": {
-                           "value": 17
-                        },
-                        "tree": {
-                           "buckets": [
-                              {
-                                 "key": "Budget_2014.xls",
-                                 "doc_count": 1,
-                                 "total_views": {
-                                    "value": 7
-                                 }
-                              },
-                              {
-                                 "key": "Budget_2013.xls",
-                                 "doc_count": 1,
-                                 "total_views": {
-                                    "value": 10
-                                 }
-                              }
-                           ]
-                        }
-                     }
-                  ]
-               }
-            }
-         ]
-      }
-   }
-}
+"aggregations": {
+    "tree": {
+       "buckets": [
+          {
+             "key": "My documents/Test.txt",
+             "doc_count": 1,
+             "total_views": {
+                "value": 1
+             }
+          },
+          {
+             "key": "My documents/Spreadsheets/Budget_2014.xls",
+             "doc_count": 1,
+             "total_views": {
+                "value": 7
+             }
+          },
+          {
+             "key": "My documents/Spreadsheets/Budget_2013.xls",
+             "doc_count": 1,
+             "total_views": {
+                "value": 10
+             }
+          },
+          {
+             "key": "My documents/Spreadsheets",
+             "doc_count": 2,
+             "total_views": {
+                "value": 17
+             }
+          },
+          {
+             "key": "My documents",
+             "doc_count": 3,
+             "total_views": {
+                "value": 18
+             }
+          }
+       ]
+    }
+ }
 
 ```
 
@@ -154,101 +145,15 @@ Result :
 
 ```
 
-PUT calendar
-{
-  "mappings": {
-    "date": {
-      "properties": {
-        "date": {
-          "type": "date",
-          "index": "not_analyzed",
-          "doc_values": true
-        }
-      }
-    }
-  }
-}
-
-PUT /calendar/date/1
-{
-  "date": "2012-01-10T02:47:28"
-}
-
-PUT /calendar/date/2
-{
-  "date": "2012-01-05T01:43:35"
-}
-
-PUT /calendar/date/3
-{
-  "date": "2012-05-01T12:24:19"
-}
-
-GET /calendar/date/_search?search_type=count
-{
-  "aggs": {
-    "tree": {
-      "path_hierarchy": {
-        "script": "doc['date'].date.toString('YYYY/MM/dd')",
-        "order": {"_term": "asc"}
-      }
-    }
-  }
-}
-
-
-Result :
-
-{
-   "aggregations": {
-      "tree": {
-         "buckets": [
-            {
-               "key": "2012",
-               "doc_count": 3,
-               "tree": {
-                  "buckets": [
-                     {
-                        "key": "01",
-                        "doc_count": 2,
-                        "tree": {
-                           "buckets": [
-                              {
-                                 "key": "05",
-                                 "doc_count": 1
-                              },
-                              {
-                                 "key": "10",
-                                 "doc_count": 1
-                              }
-                           ]
-                        }
-                     },
-                     {
-                        "key": "05",
-                        "doc_count": 1,
-                        "tree": {
-                           "buckets": [
-                              {
-                                 "key": "01",
-                                 "doc_count": 1
-                              }
-                           ]
-                        }
-                     }
-                  ]
-               }
-            }
-         ]
-      }
-   }
-}
-
+Not working...
 
 
 ```
 
+Initial project
+-------
 
+https://github.com/opendatasoft/elasticsearch-aggregation-pathhierarchy
 
 License
 -------

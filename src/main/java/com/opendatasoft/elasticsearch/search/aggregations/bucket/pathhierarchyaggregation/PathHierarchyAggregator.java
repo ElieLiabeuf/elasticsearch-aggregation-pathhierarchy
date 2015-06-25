@@ -1,21 +1,21 @@
 package com.opendatasoft.elasticsearch.search.aggregations.bucket.pathhierarchyaggregation;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.CollectionUtil;
-import org.elasticsearch.common.hash.MurmurHash3;
-import org.elasticsearch.common.lang3.StringUtils;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.util.BytesRefHash;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
-import org.elasticsearch.search.aggregations.*;
+import org.elasticsearch.search.aggregations.Aggregator;
+import org.elasticsearch.search.aggregations.AggregatorFactories;
 import org.elasticsearch.search.aggregations.bucket.BucketsAggregator;
 import org.elasticsearch.search.aggregations.support.AggregationContext;
 import org.elasticsearch.search.aggregations.support.ValuesSource;
-
-import java.io.IOException;
-import java.util.*;
 
 public class PathHierarchyAggregator extends BucketsAggregator {
 
@@ -81,51 +81,32 @@ public class PathHierarchyAggregator extends BucketsAggregator {
 
         final int size = (int) bucketOrds.size();
 
-        Map<String, List<InternalPathHierarchy.Bucket>> buckets = new HashMap<>();
+        final List<InternalPathHierarchy.Bucket> buckets = new ArrayList<InternalPathHierarchy.Bucket> (size);
         InternalPathHierarchy.Bucket spare;
 
-        for (long i = 0; i < bucketOrds.size(); i++) {
-
-            spare = new InternalPathHierarchy.Bucket(null, null, new BytesRef(), 0, null, 0, null);
+        for (int i = 0; i < size; i++) {
+            spare = new InternalPathHierarchy.Bucket(new BytesRef(), 0, null, 0);
 
             BytesRef term = new BytesRef();
             bucketOrds.get(i, term);
 
-            String [] paths = term.utf8ToString().split(separator);
-
-//            spare.hash = MurmurHash3.hash128(spare.termBytes.bytes, spare.termBytes.offset, spare.termBytes.length, 0, new MurmurHash3.Hash128()).h1;
+            String path = term.utf8ToString();
             spare.termBytes = BytesRef.deepCopyOf(term);
             spare.docCount = bucketDocCount(i);
             spare.aggregations = bucketAggregations(i);
-            spare.level = paths.length - 1;
+            spare.level = path.split(separator).length - 1;
 
-            spare.val = paths[paths.length - 1];
-            spare.path = Arrays.copyOf(paths, paths.length - 1);
-
-            String key = separator;
-            if (paths.length > 1) {
-                key += StringUtils.join(spare.path, separator);
-            }
-
-            List<InternalPathHierarchy.Bucket> listBuckets = buckets.get(key);
-            if (listBuckets == null) {
-                listBuckets = new ArrayList<>();
-            }
-            listBuckets.add(spare);
-            buckets.put(key, listBuckets);
+            buckets.add (spare);
         }
 
-
-        for (List<InternalPathHierarchy.Bucket> bucket: buckets.values()) {
-            CollectionUtil.introSort(bucket, order.comparator());
-        }
+        CollectionUtil.introSort(buckets, order.comparator());
 
         return new InternalPathHierarchy(name, buckets, order, separator);
     }
 
     @Override
     public InternalPathHierarchy buildEmptyAggregation() {
-        return new InternalPathHierarchy(name, new HashMap<String, List<InternalPathHierarchy.Bucket>>(), order, separator);
+        return new InternalPathHierarchy(name, new ArrayList<InternalPathHierarchy.Bucket>(), order, separator);
     }
 
 
